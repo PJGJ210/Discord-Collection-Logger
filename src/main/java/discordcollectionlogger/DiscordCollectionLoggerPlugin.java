@@ -5,7 +5,7 @@ import com.google.inject.Provides;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.*;
+import net.runelite.api.Varbits;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import javax.inject.Inject;
@@ -15,15 +15,13 @@ import net.runelite.api.Client;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
-import net.runelite.client.game.ItemManager;
-import net.runelite.client.game.ItemStack;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.DrawManager;
-import net.runelite.client.util.ImageCapture;
 
 import static net.runelite.http.api.RuneLiteAPI.GSON;
 
+import net.runelite.client.util.Text;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.HttpUrl;
@@ -46,12 +44,10 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
     private OkHttpClient okHttpClient;
 
     @Inject
-    private ImageCapture imageCapture;
-
-    @Inject
     private DrawManager drawManager;
 
     private static final Pattern COLLECTION_LOG_ITEM_REGEX = Pattern.compile("New item added to your collection log:.*");
+    private static final String COLLECTION_LOG_TEXT = "New item added to your collection log: ";
 
     private static final Pattern Pet_LOG_ITEM_REGEX = Pattern.compile("You have a funny feeling like you.*");
 
@@ -86,9 +82,13 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
             return;
         }
         String inputMessage = chatMessage.getMessage();
-        String outputMessage = inputMessage.replaceAll("\\<.*?>", "");
-        if (config.includeCollectionLog() && COLLECTION_LOG_ITEM_REGEX.matcher(outputMessage).matches()) {
+        String outputMessage = Text.removeTags(inputMessage);
+        if (config.includeCollectionLog()
+                && COLLECTION_LOG_ITEM_REGEX.matcher(outputMessage).matches()
+                && client.getVarbitValue(Varbits.COLLECTION_LOG_NOTIFICATION) == 1) {
             processCollection = true;
+            String item = "**" + outputMessage.substring(COLLECTION_LOG_TEXT.length()) + "**";
+            outputMessage = COLLECTION_LOG_TEXT + item;
         }
         if (config.includePets() && Pet_LOG_ITEM_REGEX.matcher(outputMessage).matches()) {
             processCollection = true;
@@ -104,13 +104,12 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
     }
     private void processCollection(String name){
         WebhookBody webhookBody = new WebhookBody();
-        boolean sendMessage = false;
         StringBuilder stringBuilder = new StringBuilder();
         if (config.includeUsername())
         {
-            stringBuilder.append("\n**").append(getPlayerName()).append("**").append("\n\n");
+            stringBuilder.append("\n**").append(getPlayerName()).append("**").append("\n");
         }
-        stringBuilder.append("***").append(name).append("***").append("\n");
+        stringBuilder.append(name).append("\n");
         webhookBody.setContent(stringBuilder.toString());
         sendWebhook(webhookBody);
     }
@@ -193,34 +192,5 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         ImageIO.write(bufferedImage, "png", byteArrayOutputStream);
         return byteArrayOutputStream.toByteArray();
-    }
-
-    private static Collection<ItemStack> stack(Collection<ItemStack> items)
-    {
-        final List<ItemStack> list = new ArrayList<>();
-
-        for (final ItemStack item : items)
-        {
-            int quantity = 0;
-            for (final ItemStack i : list)
-            {
-                if (i.getId() == item.getId())
-                {
-                    quantity = i.getQuantity();
-                    list.remove(i);
-                    break;
-                }
-            }
-            if (quantity > 0)
-            {
-                list.add(new ItemStack(item.getId(), item.getQuantity() + quantity, item.getLocation()));
-            }
-            else
-            {
-                list.add(item);
-            }
-        }
-
-        return list;
     }
 }
