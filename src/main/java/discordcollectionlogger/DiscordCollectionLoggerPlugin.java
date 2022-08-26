@@ -5,14 +5,15 @@ import com.google.inject.Provides;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import net.runelite.api.Varbits;
+
+import net.runelite.api.*;
+
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
-import net.runelite.api.Client;
 import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.ScriptPreFired;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
@@ -59,6 +60,8 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
     @Inject
     private Client client;
 
+    private boolean delayScreenshot;
+
     @Override
     protected void startUp()
     {
@@ -67,6 +70,7 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
     @Override
     protected void shutDown()
     {
+        delayScreenshot = false;
     }
 
     @Provides
@@ -192,5 +196,30 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         ImageIO.write(bufferedImage, "png", byteArrayOutputStream);
         return byteArrayOutputStream.toByteArray();
+    }
+
+    @Subscribe
+    public void onScriptPreFired(ScriptPreFired scriptPreFired)
+    {
+        switch (scriptPreFired.getScriptId())
+        {
+            case ScriptID.NOTIFICATION_START:
+                delayScreenshot = true;
+                break;
+            case ScriptID.NOTIFICATION_DELAY:
+                if (!delayScreenshot)
+                {
+                    return;
+                }
+                String notificationTopText = client.getVarcStrValue(VarClientStr.NOTIFICATION_TOP_TEXT);
+                String notificationBottomText = client.getVarcStrValue(VarClientStr.NOTIFICATION_BOTTOM_TEXT);
+                if (notificationTopText.equalsIgnoreCase("Collection log") && config.includeCollectionLog())
+                {
+                    String item = "**" + Text.removeTags(notificationBottomText).substring("New item:".length()) + "**";
+                    processCollection(COLLECTION_LOG_TEXT + item);
+                }
+                delayScreenshot = false;
+                break;
+        }
     }
 }
