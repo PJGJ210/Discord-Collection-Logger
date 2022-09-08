@@ -55,4 +55,14 @@ public interface DiscordCollectionLoggerConfig extends Config{
     {
         return false;
     }
+
+    @ConfigItem(
+            keyName = "includecollectionimage",
+            name = "Include Collection Image",
+            description = "For collection log drops include an image of the item if found"
+    )
+    default boolean includeCollectionImage()
+    {
+        return true;
+    }
 }

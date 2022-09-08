@@ -8,6 +8,8 @@ import java.io.IOException;
 
 import net.runelite.api.*;
 
+import java.lang.reflect.Field;
+import java.util.List;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import javax.inject.Inject;
@@ -16,6 +18,7 @@ import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.DrawManager;
@@ -23,6 +26,7 @@ import net.runelite.client.ui.DrawManager;
 import static net.runelite.http.api.RuneLiteAPI.GSON;
 
 import net.runelite.client.util.Text;
+import net.runelite.http.api.item.ItemPrice;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.HttpUrl;
@@ -40,7 +44,8 @@ import okhttp3.Response;
 public class DiscordCollectionLoggerPlugin extends Plugin {
     @Inject
     private DiscordCollectionLoggerConfig config;
-
+    @Inject
+    private ItemManager itemManager;
     @Inject
     private OkHttpClient okHttpClient;
 
@@ -81,23 +86,21 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
 
     @Subscribe
     public void onChatMessage(ChatMessage chatMessage) {
-        boolean processCollection = false;
         if (chatMessage.getType() != ChatMessageType.GAMEMESSAGE && chatMessage.getType() != ChatMessageType.SPAM) {
             return;
         }
         String inputMessage = chatMessage.getMessage();
         String outputMessage = Text.removeTags(inputMessage);
+        String item;
         if (config.includeCollectionLog()
                 && COLLECTION_LOG_ITEM_REGEX.matcher(outputMessage).matches()
                 && client.getVarbitValue(Varbits.COLLECTION_LOG_NOTIFICATION) == 1) {
-            processCollection = true;
-            String item = "**" + outputMessage.substring(COLLECTION_LOG_TEXT.length()) + "**";
-            outputMessage = COLLECTION_LOG_TEXT + item;
+            item = outputMessage.substring(COLLECTION_LOG_TEXT.length());
+            outputMessage = COLLECTION_LOG_TEXT + "**" + item + "**";
+            processCollection(item, outputMessage);
+
         }
         if (config.includePets() && Pet_LOG_ITEM_REGEX.matcher(outputMessage).matches()) {
-            processCollection = true;
-        }
-        if(processCollection) {
             processCollection(outputMessage);
         }
     }
@@ -106,18 +109,62 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
     {
         return client.getLocalPlayer().getName();
     }
-    private void processCollection(String name){
+    private void processCollection(String itemName, String outputText){
         WebhookBody webhookBody = new WebhookBody();
         StringBuilder stringBuilder = new StringBuilder();
         if (config.includeUsername())
         {
             stringBuilder.append("\n**").append(getPlayerName()).append("**").append("\n");
         }
-        stringBuilder.append(name).append("\n");
+        stringBuilder.append(outputText).append("\n");
+
+        if(config.includeCollectionImage()) {
+            int itemId = getItemID(itemName);
+            if(itemId < 0) {
+                List<ItemPrice> items = itemManager.search(itemName);
+                if (items.size() == 1) {
+                    itemId = items.get(0).getId();
+                    webhookBody.getEmbeds().add(new WebhookBody.Embed(new WebhookBody.UrlEmbed(itemImageUrl(itemId))));
+                }
+            }
+            else {
+                webhookBody.getEmbeds().add(new WebhookBody.Embed(new WebhookBody.UrlEmbed(itemImageUrl(itemId))));
+            }
+        }
+        webhookBody.setContent(stringBuilder.toString());
+        sendWebhook(webhookBody);
+    }
+    private void processCollection(String outputText){
+        WebhookBody webhookBody = new WebhookBody();
+        StringBuilder stringBuilder = new StringBuilder();
+        if (config.includeUsername())
+        {
+            stringBuilder.append("\n**").append(getPlayerName()).append("**").append("\n");
+        }
+        stringBuilder.append(outputText).append("\n");
         webhookBody.setContent(stringBuilder.toString());
         sendWebhook(webhookBody);
     }
 
+    private int getItemID(String itemName)
+    {
+        String workingName = itemName.replace(" ","_");
+        workingName = workingName.toUpperCase();
+        if(Character.isDigit(workingName.charAt(0)))
+        {
+            workingName = "_" + workingName;
+        }
+        Class<?> c = net.runelite.api.ItemID.class;
+        try {
+            Field F = c.getDeclaredField(workingName);
+            int itemID = (int) F.get(null);
+            return itemID;
+        }
+        catch(Exception e){
+            System.out.println("DCL Error: " + e.getMessage());
+            return -1;
+        }
+    }
     private void sendWebhook(WebhookBody webhookBody)
     {
         String configUrl = config.webhook();
@@ -215,8 +262,9 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
                 String notificationBottomText = client.getVarcStrValue(VarClientStr.NOTIFICATION_BOTTOM_TEXT);
                 if (notificationTopText.equalsIgnoreCase("Collection log") && config.includeCollectionLog())
                 {
-                    String item = "**" + Text.removeTags(notificationBottomText).substring("New item:".length()) + "**";
-                    processCollection(COLLECTION_LOG_TEXT + item);
+                    String item = Text.removeTags(notificationBottomText).substring("New item:".length());
+                    String outputText = COLLECTION_LOG_TEXT + "**" + item + "**";
+                    processCollection(item,outputText);
                 }
                 delayScreenshot = false;
                 break;
