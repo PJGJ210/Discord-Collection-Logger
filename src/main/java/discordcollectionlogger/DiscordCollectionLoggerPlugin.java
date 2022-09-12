@@ -149,6 +149,7 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
     private int getItemID(String itemName)
     {
         String workingName = itemName.replace(" ","_");
+        workingName = workingName.replace("'","");
         workingName = workingName.toUpperCase();
         if(Character.isDigit(workingName.charAt(0)))
         {
