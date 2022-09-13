@@ -150,6 +150,8 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
     {
         String workingName = itemName.replace(" ","_");
         workingName = workingName.replace("'","");
+        workingName = workingName.replace("(","");
+        workingName = workingName.replace(")","");
         workingName = workingName.toUpperCase();
         if(Character.isDigit(workingName.charAt(0)))
         {
