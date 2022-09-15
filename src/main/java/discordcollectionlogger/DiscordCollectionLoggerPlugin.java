@@ -120,14 +120,7 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
 
         if(config.includeCollectionImage()) {
             int itemId = getItemID(itemName);
-            if(itemId < 0) {
-                List<ItemPrice> items = itemManager.search(itemName);
-                if (items.size() == 1) {
-                    itemId = items.get(0).getId();
-                    webhookBody.getEmbeds().add(new WebhookBody.Embed(new WebhookBody.UrlEmbed(itemImageUrl(itemId))));
-                }
-            }
-            else {
+            if(itemId >= 0) {
                 webhookBody.getEmbeds().add(new WebhookBody.Embed(new WebhookBody.UrlEmbed(itemImageUrl(itemId))));
             }
         }
@@ -148,6 +141,12 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
 
     private int getItemID(String itemName)
     {
+        List<ItemPrice> items = itemManager.search(itemName);
+        if (items.size() == 1) {
+            return items.get(0).getId();
+        }
+        return -1;
+        /* Disabled additional lookup due to Reflection usage
         String workingName = itemName.replace(" ","_");
         workingName = workingName.replace("'","");
         workingName = workingName.replace("(","");
@@ -167,6 +166,8 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
             System.out.println("DCL Error: " + e.getMessage());
             return -1;
         }
+        */
+
     }
     private void sendWebhook(WebhookBody webhookBody)
     {
