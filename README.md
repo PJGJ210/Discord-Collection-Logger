@@ -1,4 +1,4 @@
-# DCL
+# Discord Collection Logger [![](https://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/installs/plugin/Discord-Collection-Logger)](https://runelite.net/plugin-hub)
 Based on discord-loot-logger below. This is a minimal version with only collection log + pets.
 https://github.com/Adam-/runelite-plugins/tree/discord-loot-logger
 
