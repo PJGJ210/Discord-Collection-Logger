@@ -10,8 +10,8 @@ public interface DiscordCollectionLoggerConfig extends Config{
 
     @ConfigItem(
             keyName = "webhook",
-            name = "Webhook URL",
-            description = "The Discord Webhook URL to send messages to"
+            name = "Webhook URL(s)",
+            description = "The Discord Webhook URL to send messages to (Comma Delimited for Multiple)"
     )
     String webhook();
 

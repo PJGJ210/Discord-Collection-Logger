@@ -2,18 +2,8 @@ package discordcollectionlogger;
 
 import com.google.common.base.Strings;
 import com.google.inject.Provides;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
-import net.runelite.api.*;
-
-import java.lang.reflect.Field;
-import java.util.List;
-import java.util.regex.Pattern;
-import javax.imageio.ImageIO;
-import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.*;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.client.config.ConfigManager;
@@ -22,20 +12,19 @@ import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.DrawManager;
-
-import static net.runelite.http.api.RuneLiteAPI.GSON;
-
 import net.runelite.client.util.Text;
 import net.runelite.http.api.item.ItemPrice;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import okhttp3.*;
+
+import javax.imageio.ImageIO;
+import javax.inject.Inject;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.List;
+import java.util.regex.Pattern;
+
+import static net.runelite.http.api.RuneLiteAPI.GSON;
 
 @Slf4j
 @PluginDescriptor(
@@ -177,18 +166,20 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
             return;
         }
 
-        HttpUrl url = HttpUrl.parse(configUrl);
-        MultipartBody.Builder requestBodyBuilder = new MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("payload_json", GSON.toJson(webhookBody));
+        String[] configArray = configUrl.split(",");
 
-        if (config.sendScreenshot())
-        {
-            sendWebhookWithScreenshot(url, requestBodyBuilder);
-        }
-        else
-        {
-            buildRequestAndSend(url, requestBodyBuilder);
+        for(int i = 0; i < configArray.length; i++) {
+
+            HttpUrl url = HttpUrl.parse(configArray[i].trim());
+            MultipartBody.Builder requestBodyBuilder = new MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("payload_json", GSON.toJson(webhookBody));
+
+            if (config.sendScreenshot()) {
+                sendWebhookWithScreenshot(url, requestBodyBuilder);
+            } else {
+                buildRequestAndSend(url, requestBodyBuilder);
+            }
         }
     }
 
