@@ -65,4 +65,13 @@ public interface DiscordCollectionLoggerConfig extends Config{
     {
         return true;
     }
+    @ConfigItem(
+            keyName = "disableseasonalworlds",
+            name = "Disable On Seasonal Worlds",
+            description = "On seasonal worlds collections will not be sent (ex. Leagues)"
+    )
+    default boolean disableSeasonalWorlds()
+    {
+        return true;
+    }
 }

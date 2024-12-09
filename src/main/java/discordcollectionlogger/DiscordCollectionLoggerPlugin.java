@@ -75,7 +75,11 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
 
     @Subscribe
     public void onChatMessage(ChatMessage chatMessage) {
-        if (chatMessage.getType() != ChatMessageType.GAMEMESSAGE && chatMessage.getType() != ChatMessageType.SPAM) {
+        for(WorldType w : client.getWorldType()) {
+            if(w.equals(WorldType.SEASONAL) && config.disableSeasonalWorlds())
+                return;
+        }
+        if ((chatMessage.getType() != ChatMessageType.GAMEMESSAGE && chatMessage.getType() != ChatMessageType.SPAM)) {
             return;
         }
         String inputMessage = chatMessage.getMessage();
@@ -243,6 +247,10 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
     @Subscribe
     public void onScriptPreFired(ScriptPreFired scriptPreFired)
     {
+        for(WorldType w : client.getWorldType()) {
+            if(w.equals(WorldType.SEASONAL) && config.disableSeasonalWorlds())
+                return;
+        }
         switch (scriptPreFired.getScriptId())
         {
             case ScriptID.NOTIFICATION_START:
