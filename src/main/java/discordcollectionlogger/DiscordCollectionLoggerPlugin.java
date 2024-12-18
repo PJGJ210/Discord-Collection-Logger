@@ -248,8 +248,8 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
     @Subscribe
     public void onScriptPreFired(ScriptPreFired scriptPreFired)
     {
-        for(WorldType w : client.getWorldType()) {
-            if(w.equals(WorldType.SEASONAL) && config.disableSeasonalWorlds())
+        if(config.disableSeasonalWorlds() && client.getWorldType().contains(WorldType.SEASONAL))
+        {
                 return;
         }
         switch (scriptPreFired.getScriptId())
