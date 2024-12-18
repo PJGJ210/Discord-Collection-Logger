@@ -74,10 +74,11 @@ public class DiscordCollectionLoggerPlugin extends Plugin {
     }
 
     @Subscribe
-    public void onChatMessage(ChatMessage chatMessage) {
-        for(WorldType w : client.getWorldType()) {
-            if(w.equals(WorldType.SEASONAL) && config.disableSeasonalWorlds())
-                return;
+    public void onChatMessage(ChatMessage chatMessage)
+    {
+        if(config.disableSeasonalWorlds() && client.getWorldType().contains(WorldType.SEASONAL))
+        {
+            return;
         }
         if ((chatMessage.getType() != ChatMessageType.GAMEMESSAGE && chatMessage.getType() != ChatMessageType.SPAM)) {
             return;
